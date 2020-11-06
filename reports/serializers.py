@@ -1,16 +1,35 @@
-from rest_framework import serializers
-# from substances.models import *
-# from Chemicals.models import *
-from .models import *
-
 """ serializers for reports data"""
+from rest_framework import serializers
+from reports.models import *
+
+
+class PropertySerializer(serializers.ModelSerializer):
+    """ property serializer """
+
+    class Meta:
+        """ settings """
+        model = Properties
+        fields = '__all__'
+        depth = 1
+
+
+class UnitSerializer(serializers.ModelSerializer):
+    """ unit serializer """
+
+    class Meta:
+        """ settings """
+        model = Units
+        fields = '__all__'
+        depth = 0
 
 
 class ConditionSerializer(serializers.ModelSerializer):
     """ condition serializer """
+    property = PropertySerializer(many=False, required=True)
+    unit = UnitSerializer(many=False, required=True)
 
     class Meta:
-        """ condition """
+        """ settings """
         model = Conditions
         fields = '__all__'
         depth = 0
@@ -18,16 +37,18 @@ class ConditionSerializer(serializers.ModelSerializer):
 
 class DataSerializer(serializers.ModelSerializer):
     """ data serializer """
+    property = PropertySerializer(many=False, required=True)
+    unit = UnitSerializer(many=False, required=True)
 
     class Meta:
-        """ data """
+        """ settings """
         model = Data
         fields = '__all__'
         depth = 0
 
 
 class DatapointSerializer(serializers.ModelSerializer):
-    """ datapoints serializer """
+    """ datapoint serializer """
     conditions = ConditionSerializer(source='conditions_set', many=True, required=False)
     data = DataSerializer(source='data_set', many=True, required=False)
 
@@ -49,67 +70,100 @@ class DataseriesSerializer(serializers.ModelSerializer):
         depth = 0
 
 
-class DatasetSerializer(serializers.ModelSerializer):
-    """ dataset serializer """
-    series = DataseriesSerializer(source='dataseries_set', many=True, required=False)
+class ChemicalSerializer(serializers.ModelSerializer):
+    """ chemical serializer """
 
     class Meta:
-        """ datasets """
-        model = Datasets
+        """ settings """
+        model = Chemicals
+        depth = 1
+        exclude = ['rep']
+
+
+class SubstanceSystemSerializer(serializers.ModelSerializer):
+    """ substance_system serializer """
+
+    class Meta:
+        """ settings """
+        model = SubstancesSystems
         fields = '__all__'
-        depth = 0
+        depth = 2
 
 
-class ReferenceSerializer(serializers.ModelSerializer):
-    """ reference serializer """
-    class Meta:
-        """ references """
-        model = References
-        fields = '__all__'
-        depth = 0
-
-
-class ReportSerializer(serializers.ModelSerializer):
-    """ report serializer """
-    sets = DatasetSerializer(source='datasets_set', many=True, required=False)
+class SubstanceSerializer(serializers.ModelSerializer):
+    """ substance serializer """
+    chemical = ChemicalSerializer(source='chemicals_set', many=True, required=False)
 
     class Meta:
-        """ reports """
-        model = Reports
+        """ settings """
+        model = Substances
         fields = '__all__'
         depth = 0
 
 
 class SystemSerializer(serializers.ModelSerializer):
     """ system serializer """
+    subsys = SubstanceSystemSerializer(source='substances_systems_set', many=True, required=False)
 
     class Meta:
-        """ system """
+        """ settings """
         model = Systems
         fields = '__all__'
         depth = 0
 
 
-class PropertySerializer(serializers.ModelSerializer):
-    """ property serializer """
-    condition = ConditionSerializer(source='conditions_set', many=True, required=False)
-    data = DataSerializer(source='data_set', many=True, required=False)
+class ReferenceSerializer(serializers.ModelSerializer):
+    """ reference serializer """
 
     class Meta:
-        """ property """
-        model = Properties
+        """ settings """
+        model = References
         fields = '__all__'
-        depth = 0
+        depth = 1
 
 
-class UnitSerializer(serializers.ModelSerializer):
-    """ unit serializer """
-    conditions = ConditionSerializer(source='conditions_set', many=True, required=False)
-    data = DataSerializer(source='data_set', many=True, required=False)
-    property = PropertySerializer(source='properties_set', many=True, required=False)
+class DatasetSerializer(serializers.ModelSerializer):
+    """ dataset serializer """
+    series = DataseriesSerializer(source='dataseries_set', many=True, required=False)
+    reference = ReferenceSerializer(many=False, required=True)
+    system = SystemSerializer(source='systems_set', many=True, required=False)
 
     class Meta:
-        """ unit """
-        model = Units
+        """ settings """
+        model = Datasets
+        depth = 3
+        exclude = ['report']
+
+
+class ReportSerializer(serializers.ModelSerializer):
+    """ reports serializer """
+    set = DatasetSerializer(source='datasets_set', many=True, required=False)
+    chem = ChemicalSerializer(source='chemicals_set', many=True, required=False)
+
+    class Meta:
+        """ settings """
+        model = Reports
+        fields = '__all__'
+        depth = 1
+
+
+class AuthorSerializer(serializers.ModelSerializer):
+    """ authors_reports serializer """
+
+    class Meta:
+        """ settings """
+        model = Authors
+        fields = '__all__'
+        depth = 1
+
+
+class AuthorReportSerializer(serializers.ModelSerializer):
+    """ authors_reports serializer """
+    auth = AuthorSerializer(source='authors_set', many=True, required=False)
+    rep = ReportSerializer(source='reports_set', many=True, required=False)
+
+    class Meta:
+        """ settings """
+        model = AuthorsReports
         fields = '__all__'
         depth = 0

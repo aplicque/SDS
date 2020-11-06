@@ -1,11 +1,29 @@
-# database table models
-""" django file models for reports app"""
+""" django models file for reports app """
 from django.db import models
 
 
+class Publications(models.Model):
+    """ publications table model """
+    id = models.SmallAutoField(primary_key=True)
+    volumeid = models.CharField(max_length=50, blank=True, null=True)
+    publisher = models.CharField(max_length=128)
+    series = models.CharField(max_length=64)
+    volume = models.CharField(max_length=32, blank=True, null=True)
+    year = models.SmallIntegerField(blank=True, null=True)
+    title = models.CharField(max_length=256)
+    authors = models.CharField(max_length=512)
+    url = models.CharField(max_length=128)
+    citation = models.CharField(max_length=128, blank=True, null=True)
+    updated = models.DateTimeField()
+
+    class Meta:
+        managed = False
+        db_table = 'publications'
+
+
 class Reports(models.Model):
-    """ reports table model"""
-    publication_id = models.SmallIntegerField()
+    """ reports table model """
+    pub = models.ForeignKey(Publications, models.DO_NOTHING, db_column="publication_id")
     sysid = models.CharField(max_length=10)
     eval = models.IntegerField(blank=True, null=True)
     count = models.SmallIntegerField()
@@ -22,23 +40,8 @@ class Reports(models.Model):
         db_table = 'reports'
 
 
-class Systems(models.Model):
-    """ systems table model """
-    reports = models.ForeignKey(Reports, models.DO_NOTHING, db_column="report_id")
-    name = models.CharField(max_length=512)
-    volume = models.IntegerField()
-    publication_id = models.SmallIntegerField()
-    components = models.PositiveIntegerField(blank=True, null=True)
-    comments = models.CharField(max_length=256, blank=True, null=True)
-    updated = models.DateTimeField()
-
-    class Meta:
-        managed = False
-        db_table = 'systems'
-
-
 class References(models.Model):
-    """ references table model """
+    """ references model """
     refid = models.IntegerField(blank=True, null=True)
     report = models.ForeignKey(Reports, models.DO_NOTHING, db_column="report_id")
     method = models.TextField(blank=True, null=True)
@@ -74,6 +77,36 @@ class References(models.Model):
         db_table = 'references'
 
 
+class Systems(models.Model):
+    """ systems table model """
+    sysnmid = models.IntegerField(blank=True, null=True)
+    name = models.CharField(max_length=512)
+    volume = models.IntegerField()
+    publication_id = models.SmallIntegerField()
+    components = models.PositiveIntegerField(blank=True, null=True)
+    comments = models.CharField(max_length=256, blank=True, null=True)
+    updated = models.DateTimeField()
+
+    class Meta:
+        managed = False
+        db_table = 'systems'
+
+
+class Datasets(models.Model):
+    """ datasets table model """
+    sysid = models.CharField(max_length=10)
+    sysnmid = models.PositiveIntegerField()
+    report = models.ForeignKey(Reports, models.DO_NOTHING, db_column="report_id")
+    reference = models.ForeignKey(References, models.DO_NOTHING, db_column="reference_id")
+    system = models.ForeignKey(Systems, models.DO_NOTHING, db_column="system_id")
+    comments = models.CharField(max_length=256, blank=True, null=True)
+    updated = models.DateTimeField()
+
+    class Meta:
+        managed = False
+        db_table = 'datasets'
+
+
 class Units(models.Model):
     """ unit table model """
     id = models.SmallAutoField(primary_key=True)
@@ -93,28 +126,13 @@ class Units(models.Model):
         db_table = 'units'
 
 
-class Datasets(models.Model):
-    """ datasets table model """
-    sysid = models.CharField(max_length=10)
-    sysnmid = models.PositiveIntegerField()
-    reports = models.ForeignKey(Reports, models.DO_NOTHING, db_column="report_id")
-    system = models.ForeignKey(Systems, models.DO_NOTHING, db_column="system_id")
-    reference = models.ForeignKey(References, models.DO_NOTHING, db_column="reference_id")
-    comments = models.CharField(max_length=256, blank=True, null=True)
-    updated = models.DateTimeField()
-
-    class Meta:
-        managed = False
-        db_table = 'datasets'
-
-
 class Properties(models.Model):
     """ properties table model """
     name = models.CharField(max_length=256)
     symbol = models.CharField(max_length=32)
     definition = models.CharField(max_length=512)
     source = models.CharField(max_length=256)
-    unit = models.ForeignKey(Units, models.DO_NOTHING, db_column="unit_id")
+    baseunit = models.ForeignKey(Units, models.DO_NOTHING, db_column="unit_id")
     quantity_id = models.SmallIntegerField(blank=True, null=True)
     field = models.CharField(max_length=256)
     updated = models.DateTimeField()
@@ -207,3 +225,87 @@ class Data(models.Model):
     class Meta:
         managed = False
         db_table = 'data'
+
+
+class Substances(models.Model):
+    """ substances table model """
+    subid = models.CharField(max_length=512)
+    casno = models.CharField(max_length=50, blank=True, null=True)
+    name = models.CharField(max_length=256, blank=True, null=True)
+    type = models.CharField(max_length=3)
+    formula = models.CharField(max_length=1024, blank=True, null=True)
+    formula_html = models.CharField(max_length=1024, blank=True, null=True)
+    pcformula = models.CharField(max_length=256)
+    molweight = models.FloatField()
+    updated = models.DateTimeField()
+
+    class Meta:
+        managed = False
+        db_table = 'substances'
+
+
+class SubstancesSystems(models.Model):
+    """ substances_systems table model """
+    substance = models.ForeignKey(Substances, models.DO_NOTHING, db_column="substance_id")
+    system = models.ForeignKey(Systems, models.DO_NOTHING, db_column="system_id")
+    sysid = models.CharField(max_length=10, blank=True, null=True)
+    subid = models.CharField(max_length=10, blank=True, null=True)
+    sysnmid = models.CharField(max_length=10, blank=True, null=True)
+    component_index = models.IntegerField(blank=True, null=True)
+    issolvent = models.IntegerField(db_column='isSolvent', blank=True, null=True)  # Field name made lowercase.
+    comment = models.TextField()
+    updated = models.DateTimeField()
+
+    class Meta:
+        managed = False
+        db_table = 'substances_systems'
+
+
+class Chemicals(models.Model):
+    """ chemicals table model """
+    description = models.TextField(blank=True, null=True)
+    sub = models.ForeignKey(Substances, models.DO_NOTHING, db_column="substance_id")
+    subid = models.CharField(max_length=50)
+    sys_id = models.CharField(max_length=50, blank=True, null=True)
+    rep = models.ForeignKey(Reports, models.DO_NOTHING, db_column="report_id")
+    compnum = models.IntegerField(blank=True, null=True)
+    name = models.CharField(max_length=128)
+    comments = models.CharField(max_length=255, blank=True, null=True)
+    notes = models.CharField(max_length=255)
+    compnumcheck = models.IntegerField()
+    updated = models.DateTimeField()
+
+    class Meta:
+        managed = False
+        db_table = 'chemicals'
+
+
+class Authors(models.Model):
+    """ authors table model """
+    id = models.SmallAutoField(primary_key=True)
+    name = models.CharField(max_length=128)
+    abbrev = models.CharField(max_length=128, blank=True, null=True)
+    institution = models.CharField(max_length=256, blank=True, null=True)
+    address = models.CharField(max_length=256, blank=True, null=True)
+    email = models.CharField(max_length=64, blank=True, null=True)
+    updated = models.DateTimeField()
+
+    class Meta:
+        managed = False
+        db_table = 'authors'
+
+
+class AuthorsReports(models.Model):
+    """ authors table model """
+    id = models.SmallAutoField(primary_key=True)
+    author = models.ForeignKey(Authors, models.DO_NOTHING, db_column="author_id")
+    rep = models.ForeignKey(Reports, models.DO_NOTHING, db_column="report_id")
+    name = models.CharField(max_length=255)
+    sysid = models.CharField(max_length=20)
+    role = models.CharField(max_length=9)
+    order = models.PositiveIntegerField(blank=True, null=True)
+    updated = models.DateTimeField()
+
+    class Meta:
+        managed = False
+        db_table = 'authors_reports'
